@@ -1,0 +1,7 @@
+[project]
+name = "poc-rag"
+version = "0.1.0"
+description = "PoC demonstrando uma pipeline de IA para um assistente de perguntas e respostas."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = []
