@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  db:
+    image: pgvector/pgvector:pg15
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: rag_db
+    ports:
+      - 5432:5432
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - pgvector-data:/var/lib/postgresql/data
+    networks:
+      - pgvector-network
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+    networks:
+      - pgvector-network
+
+volumes:
+  pgvector-data:
+
+networks:
+  pgvector-network:
+    driver: bridge

@@ -38,4 +38,10 @@ Seguir as instruções apresentadas no documento.
 - AWS: Bedrock embeddings (Titan) e inferência(modelo a definir)
 - Documentos: PDFs e .txts
 
+# How to use 
+First run and setup the AWS credentials, the user only needs BedrockFullCredentials
+
+´´´bash
+uv run aws configure
+´´´
 
