@@ -5,7 +5,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain.schema.document import Document # Type annotation
 import os 
 import psycopg2 
-from psycopg2.errors import UniqueViolation
 from langchain_aws import BedrockEmbeddings
 
 from db_utils import get_conn 
@@ -32,8 +31,8 @@ def chunk_document(documentos: list[Document]) -> list[Document]:
     # https://python.langchain.com/docs/how_to/recursive_text_splitter/
 
     splitter_texto = RecursiveCharacterTextSplitter(
-        chunk_size = 500,
-        chunk_overlap = 50,
+        chunk_size = 1000,
+        chunk_overlap = 200,
         length_function = len,
         is_separator_regex = False,
     )
@@ -111,7 +110,7 @@ def processar_chunks_pdf(chunks, dados_chunk):
             "pag": pagina_atual,
             "indice_chunk": indice_chunk_atual,
             "embedding": conteudo_embedding,
-            "modtempo": metadados['moddate'] # Abreviacao para ultima modificacao/modificacao tempo.
+            "modtempo": metadados.get('moddate') # Abreviacao para ultima modificacao/modificacao tempo. get para retornar None se nao existe.
         })
 
 def processar_chunks_txt(chunks, dados_chunk):
