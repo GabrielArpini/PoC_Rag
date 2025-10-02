@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS docs (
   num_pagina INTEGER NULL,
   indice_chunk INTEGER,
   conteudo TEXT,
-  embedding VECTOR(1024), -- Bedrock embedding possui 1536 dimensoes.
+  embedding VECTOR(1024), -- Bedrock embedding v2 possui 1024 dimensoes.
   modtempo TIMESTAMPTZ
 );
 

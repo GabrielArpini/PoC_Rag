@@ -1,47 +1,27 @@
-# PoC RAG
+# PoC RAG + Embeddings
 
-## Introdução 
-O presente projeto é uma demonstração de uma PoC de um assistente de perguntas e respostas que utiliza documentos como fonte de verdade para o processo seletivo da Kairos Lab.
+## Introdução
+Pipeline RAG com embeddings desenvolvida para o processo seletivo da Kairos Lab, em conjunto com um notebook para o fine tunin do modelo `Gemma 3 270m`. A pipeline principal é integrada com a interface web que utiliza `streamlit` para facilitar a demonstração de suas funcionalidades.
 
-## Primeiras intuições
-Como foi citado o uso de AWS internamente pela empresa, darei prioridade aos recursos presentes na AWS para o desenvolvimento deste projeto, sendo o AWS Bedrock o item principal da pipeline.
+## Como a pipeline RAG funciona?
+O desenvolvimento da pipeline RAG foi separado em dois componentes principais: pre processamento e processamento de query.
 
-Este projeto deve ser dividido em duas partes:
+### Pre-processamento 
+O pré processamento(`pre_processing.py`) é um componente desenvolvido para o processamento de arquivos pdf e txt, o qual satisfaz o seguinte diagrama simplificado
 
-### Pré-processamento
-Utilizar os documentos fornecidos, separá-los em chunks(os indíces podem ser usados para encontrar a fonte em que o modelo se baseou para uma resposta posteriormente), criar os embeddings e armazená-los em um vectorDB, provavelmente ChromaDB ou PGVector + PostgreSQL.
+#TODO: inserir diagrama 
 
-### Processamento de pergunta e resposta
-Após o envio de uma pergunta pelo usuário, a mesma será processada em uma pesquisa de similaridade na VectorDB, a qual retornará chunks relevantes e a pergunta será aprimorada antes de enviada para a LLM, caso não haja nada relevante na VectorDB, a pergunta será enviada diretamente para a LLM.
+A partir da interface web, pode-se inserir múltiplos arquivos (pdf ou txt), os quais são usados para iniciar o processo de pré processamento conforme a imagem. Primeiro é feito uma simples extração da extensão do arquivo inserido, para então utilizar o `loader` da biblioteca `langchain` correspondente a extensão extraida (`PyPDFLoader` ou `TextLoader`), a função que realiza esta tarefa é a `processar_item_unico()`. Após o carregamento do arquivo especificado é feito a separação dos chunks que utiliza a função `RecursiveCharacterTextSplitter` da biblioteca `langchain`, após isso se utiliza uma variável `dados_chunk` para armazenar o índice do chunk, página (se houver), conteúdo, embedding do conteúdo, tempo da última modificação (se houver) e caminho do arquivo, finalizando o processamento do item, que ocorre iterativamente a cada item do upload de arquivos.
 
-### Fine tuning
-Seguir as instruções apresentadas no documento.
+Com os arquivos já processados é feito uma verificação da existência de `órfãos` no banco de dados. Um órfão ocorre quando se tenta realizar um upload de um mesmo arquivo que já foi armazenado no banco de dados, mas que possui uma quantidade menor de  páginas por exemplo, neste caso para maior eficiência do espaço é feito a remoção de todos os órfaos do banco de dados com base nos arquivos que estão sendo processados para armazenamento no banco de dados, esta tarefa é realizada pela função `check_db_orfaos()`.
 
-## Opcionais (prováveis de serem aplicados)
-- Interface web;
-- Web search;
-- RLHF (muito ousado, se sobrar bastante tempo, sistema de feedback de respostas);
-- etc..
+Por fim, é feito a inserção dos dados dos chunks no banco de dados, utilizando uma query SQL que também permite a atualização de chunks que foram modificados, maximizando a eficiência de processamento de arquivos.
 
 
-## Filosofia
-- Código limpo;
-- Código simples, sem complexidade desnecessária;
-- Type annotations para legibilidade;
-- Eficiência de custo, priorizar soluções open sources que maximizam eficiência e minimiza custos;
-- Transparência através de documentação clara e comentários claros nos códigos.
+### Processamento de query 
 
-# Tecnologias
-- Linguagem: Python 3.8+
-- Ferramentas: boto3, LangChain, psycopg2(pgvector);
-- VectorDB: PostgreSQL + pgvector, ChromaDB (alternativa)
-- AWS: Bedrock embeddings (Titan) e inferência(modelo a definir)
-- Documentos: PDFs e .txts
+O processamento de query ocorre após o usuário definir uma query e apertar o botão `processar` na interface web. Este processamento ocorre no arquivo `query_processing.py` iniciando com a transformação da query em um embedding utilizando o modelo "Amazon Titan Text Embedding v2", a obtenção de embedding acontece na função `get_query_embedding()`. 
+Os embeddings da query são então comparados com os embeddings do banco de dados, usufruindo das capacidades da extensão `pgvector` do `PostgreSQL` para realizar a comparação dos embeddings com base na distância de coseno entre os vetores, o qual é feito utilizando o operador `<=>` do `pgvector`
 
-# How to use 
-First run and setup the AWS credentials, the user only needs BedrockFullCredentials
 
-´´´bash
-uv run aws configure
-´´´
 

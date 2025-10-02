@@ -10,7 +10,10 @@ DB_CONFIGS = {
 }
 
 def get_conn():
-    conn = psycopg2.connect(**DB_CONFIGS)
+    try:
+        conn = psycopg2.connect(**DB_CONFIGS)
+    except Exception as e:
+        print(f"Houve um erro ao conectar no banco de dados: {e}")
     return conn
 
 
