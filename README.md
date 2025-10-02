@@ -12,21 +12,32 @@ O desenvolvimento da pipeline RAG foi separado em dois componentes principais: p
 ### Pre-processamento 
 O pré processamento(`pre_processing.py`) é um componente desenvolvido para o processamento de arquivos pdf e txt, o qual satisfaz o seguinte diagrama simplificado
 
+![pre processamento](/imgs/pre_processamento.png)
+
 #TODO: inserir diagrama 
 
 A partir da interface web, pode-se inserir múltiplos arquivos (pdf ou txt), os quais são usados para iniciar o processo de pré processamento conforme a imagem. Primeiro é feito uma simples extração da extensão do arquivo inserido, para então utilizar o `loader` da biblioteca `langchain` correspondente a extensão extraida (`PyPDFLoader` ou `TextLoader`), a função que realiza esta tarefa é a `processar_item_unico()`. Após o carregamento do arquivo especificado é feito a separação dos chunks que utiliza a função `RecursiveCharacterTextSplitter` da biblioteca `langchain`, após isso se utiliza uma variável `dados_chunk` para armazenar o índice do chunk, página (se houver), conteúdo, embedding do conteúdo, tempo da última modificação (se houver) e caminho do arquivo, finalizando o processamento do item, que ocorre iterativamente a cada item do upload de arquivos.
 
+
 Com os arquivos já processados é feito uma verificação da existência de `órfãos` no banco de dados. Um órfão ocorre quando se tenta realizar um upload de um mesmo arquivo que já foi armazenado no banco de dados, mas que possui uma quantidade menor de  páginas por exemplo, neste caso para maior eficiência do espaço é feito a remoção de todos os órfaos do banco de dados com base nos arquivos que estão sendo processados para armazenamento no banco de dados, esta tarefa é realizada pela função `check_db_orfaos()`.
+
 
 Por fim, é feito a inserção dos dados dos chunks no banco de dados, utilizando uma query SQL que também permite a atualização de chunks que foram modificados, maximizando a eficiência de processamento de arquivos.
 
 
 ### Processamento de query 
-TODO: INSERIR IMAGEM PROCESSAMENTO QUERY.
+![Processamento query](imgs/query_processing.png)
+
 
 O processamento de query ocorre após o usuário definir uma query e apertar o botão `processar` na interface web. Este processamento ocorre no arquivo `query_processing.py` iniciando com a transformação da query em um embedding utilizando o modelo "Amazon Titan Text Embedding v2", a obtenção de embedding acontece na função `get_query_embedding()`. 
+
+
 Os embeddings da query são então comparados com os embeddings do banco de dados, usufruindo das capacidades da extensão `pgvector` do `PostgreSQL` para realizar a comparação dos embeddings com base na distância de coseno entre os vetores, o qual é feito utilizando o operador `<=>` do `pgvector`, extraindo um valor de similaridade que é filtrado com base em um número mínimo de similaridade.
+
+
 Após as etapas mencionadas, é feito uma simples condicional com o intuito de verificar se há algum resultado com valor de similaridade acima do mínimo ou não, caso não exista ocorre o `fallback para a web`, onde há a obtenção de contextos a partir de uma pesquisa simples na web, um `otimizador de query para pesquisa` foi desenvolvido para aumentar a eficácia da pesquisa, o que de fato mostrou um resultado positivo. A função `otimizar_prompt_web()` utiliza a query do usuário para então gerar uma query para pesquisa na internet e o modelo de LLM (`Claude Haiku`) é utilizado com um prompt específico para esta tarefa, o contexto é então utilizado para gerar o prompt para a LLM (`Claude Haiku`) gerar a resposta da query do usuário, no caso de uso de internet não é feito mais nada depois.
+
+
 Para o caso de a pesquisa de similaridade semântica retornar algum valor com chunks dos documentos relevantes, o prompt para LLM é então gerado e uma resposta é feita, neste caso há uma verificação da resposta da LLM com o contexto fornecido, ambos são transformados em embeddings e é feito um cálculo de similaridade com base na distância dos vetores em coseno, caso ultrapasse um valor de mínimo acetitável, a resposta é aprovada para ser mostrada ao usuário, caso contrário ocorre um `fallback para a web` com o intuito de obter contextos para reforçar os já presentes melhorando (com maior probabilidade) a resposta da LLM posteriormente, a função `otimizar_prompt_web` é utilizada para realizar a pesquisa, após isso o prompt final é gerado e passado para a LLM gerar uma resposta finalizando o processamento de query.
 
 
@@ -43,10 +54,13 @@ A interface web utiliza a biblioteca `Streamlit`, a fim de facilitar a demonstra
 
 # Pré-requisitos
 - Acesso ao serviço Bedrock da AWS
-- Docker
+- docker compose
 - uv (gerenciamento de pacotes e versões)
 
 # Como usar
+
+ATENÇÂO: Sistema operacional utilizado: Linux 6.16.8-arch3-1. (comandos em bash, caso use Windows utilize WSL).
+
 Primeiro é necessário clonar o repósitorio:
 ```bash
 git clone https://github.com/GabrielArpini/PoC_Rag.git
