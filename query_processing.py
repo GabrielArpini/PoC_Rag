@@ -22,12 +22,34 @@ cur = conn.cursor()
 
 
 def get_query_embedding(query: str) -> List[float]:
+    """
+    Gera embeddings da string input.
+
+    Args:
+        query (str): String a se obter embeddings.
+    Returns:
+        List[float]: Lista com os embeddings.
+    """
+
     embedding = BedrockEmbeddings(
         model_id="amazon.titan-embed-text-v2:0"
     )
     return embedding.embed_query(query)
 
 def pesquisa_semantica(query_embedding: List[float], top_k: int = 3) -> List[Dict[str,Any]]:
+    """
+    Utiliza a extensão 'pgvector' do banco de dados para comparar o embedding input com os 
+    embedings do banco de dados através do cálculo de similaridade por coseno (<=>).
+
+    Args:
+        query_embedding (List[float]): Lista com os embeddings de entrada para serem comparados com o banco de dados.
+        top_k (int): Quantidade de itens a retornar (caso existam). Default: 3.
+    Returns:
+        List[Dict[str, Any]]: Lista com os resultados, vazia se não for achado nada.
+    Raises:
+        Exception: Caso ocorra um erro durante a query é rotornado uma lista vazia.
+    """
+
     pgvector_query = """
         SELECT 
             path_origem,
@@ -61,6 +83,17 @@ def pesquisa_semantica(query_embedding: List[float], top_k: int = 3) -> List[Dic
 
 
 def gerar_resposta(query:str, contextos: List[Dict[str,Any]], usou_web:bool = False):
+    """
+    Utiliza a query em conjunto com os contextos para gerar uma resposta do modelo através do Prompt gerado.
+    Não gera a resposta em sí, a função 'get_resposta_modelo' que interage com a API para obter a resposta da LLM.
+
+    Args:
+        query (str): string a ser usada como query do usuário.
+        contextos (List[Dict[str,Any]]): lista com os contextos a serem apresentados para a LLM. 
+        usou_web (bool): booleana para definir se foi usado web ou não para obter os contextos. 
+    Returns:
+        resposta (str): resposta da LLM.
+    """
     info_contextos = ""
     for contexto in contextos:
         if 'link' not in contexto.keys(): # link so existe se pesquisou na web 
@@ -92,10 +125,15 @@ def gerar_resposta(query:str, contextos: List[Dict[str,Any]], usou_web:bool = Fa
 
     return resposta 
 
-def otimizar_prompt_web(user_query) -> PromptTemplate:
+def otimizar_prompt_web(user_query: str) -> PromptTemplate:
     """
     Função feita para os fall backs para web, com o intuito de criar um prompt 
     com base na query do usuario e retornar um prompt otimizado para pesquisa na web.
+
+    Args: 
+        user_query (str): string a ser otimizada para web.
+    Returns:
+        PromptTemplate: Prompt a ser passado para a LLM.
     """
     template_prompt = PromptTemplate(
         input_variables = ['query','contexto'],
@@ -119,6 +157,18 @@ def otimizar_prompt_web(user_query) -> PromptTemplate:
     prompt = template_prompt.format(query=user_query)
     return prompt 
 def get_resposta_modelo(prompt: PromptTemplate):
+    """
+    Iterage com a API do bedrock e o modelo claude-3-haiku para gerar uma resposta com base do prompt 
+    de parâmetro.
+
+    Args:
+        prompt (PromptTemplate): prompt a ser passado para a LLM.
+    Returns:
+        response_text (str): Resposta do modelo.
+    Raises:
+        Exception: Caso ocorra um erro durante a chamada da API é printado uma mensagem de erro
+        e retorna uma string vazia.
+    """
     client = boto3.client("bedrock-runtime")
     model_id = "anthropic.claude-3-haiku-20240307-v1:0"
     conversa = [
@@ -138,6 +188,7 @@ def get_resposta_modelo(prompt: PromptTemplate):
         return response_text 
     except Exception as e:
         print(f"Um erro aconteceu durante criacao da resposta: {e}")
+        return ""
 
 
         
@@ -151,12 +202,29 @@ def buscar_na_web(query:str):
     Resposta: Neil Armstrong 
     Neste exemplo o embedding da pergunta não necessariamente possui uma similaridade semantica 
     grande com a resposta, e este tipo de problema pode resultar em erros durante a procura de snippets.
+
+    Args:
+        query (str): query de pesquisa para a web. 
+    Returns:
+        List[Dict[str,str]]: Retorna uma lista de dicionários com as informações da pesquisa(snippet, link, etc)  
     """
     search = DuckDuckGoSearchResults(output_format="list")
     return search.invoke(query)
 
 
 def processar_query(query:str, top_k: int = 5, min_similaridade_res=0.6):
+    """
+    Função principal que junta todas as funcionalidades, desde a obtenção de embeddings até gerar as respostas e fallbacks.
+    Args:
+        query (str): query do usuário.
+        top_k (int): máximo de valores a retornar da busca por similaridade semantica.
+        min_similaridade_res (float): Minimo de similaridade aceita da resposta do modelo.
+    Returns:
+        resposta (str): Resposta do modelo.
+        contextos (List[Dict[str,Any]]): Lista de dicionários com todos os contextos utilizados para a resposta.
+        usou_web (bool): Se usou a web a priori ou não.
+        usou_web_e_docs (bool): se precisou usar a web após gerar a primeira resposta.
+    """
     query_embedding = get_query_embedding(query)
     contextos = pesquisa_semantica(query_embedding,top_k) 
     usou_web = False
@@ -171,7 +239,7 @@ def processar_query(query:str, top_k: int = 5, min_similaridade_res=0.6):
 
     # Comparar a respota com os contextos existentes.
     # Caso ja tenha pesquisado na internet, nao fara nada.
-    # porem, caso tenha contexto apenas dos docs eles sejam considerados nao suficientes
+    # porem, caso tenha contexto apenas dos docs e eles sejam considerados nao suficientes
     # adicionara contextos da web.
     if not usou_web:
         contextos_embeddings = [get_query_embedding(contexto['conteudo']) for contexto in contextos]

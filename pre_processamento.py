@@ -17,6 +17,16 @@ conn = get_conn()
 cur = conn.cursor()
 
 def carregar_documentos(diretorio: str, loader_cls: Any, tipo_arquivo: str) -> list[Document]:
+    """
+    Carrega os documentos presentes do diretório /data/pdfs ou /data/txts por exemplo.
+
+    Args:
+        diretorio (str): diretorio dos dados. 
+        loader_cls (Any): Loader do langchain a ser utilizado.
+        tipo_arquivo (str): Tipo do arquivo no diretorio.
+    Returns:
+        list[Document]: Lista com os documentos presentes no diretório.
+    """
     # TODO: Criar utils para checagem da existencia de DATA_PATH
     # e conteudos
     #
@@ -28,6 +38,15 @@ def carregar_documentos(diretorio: str, loader_cls: Any, tipo_arquivo: str) -> l
     return loader.load()
 
 def chunk_document(documentos: list[Document]) -> list[Document]:
+    """
+    Utiliza RecursiveCharacterTextSplitter para criar chunks de cada documento presente na lista input.
+
+    Args:
+        documentos (list[Document]): Lista com objetos do tipo Document.
+
+    Returns:
+        list[Document]: Lista com objetos do tipo Document com respectivos chunks.
+    """
     # https://python.langchain.com/docs/how_to/recursive_text_splitter/
 
     splitter_texto = RecursiveCharacterTextSplitter(
@@ -38,24 +57,23 @@ def chunk_document(documentos: list[Document]) -> list[Document]:
     )
     return splitter_texto.split_documents(documentos)
 
-#TODO: Criar uma função para verificar se houve update no pdf/texto 
-# por ora não há uma forma de atualizar o dados caso eles sejam atualizados.
-
 def armazenar_db(chunks_tratados: List[Dict[str,Any]]) -> None:
     """
     Função de extrema importância, uma vez que deve detectar mudanças nos pdfs/textos e tratá-las.
     Exemplos: O pdf é o mesmo, mas houve uma mudança em uma seção dele;
-    Foi deletado uma página do pdf;
     Foi adicionado uma página ao pdf.
 
-    Os statements SQL abaixo utilizam mecanismos do PostgreSQL para verificar estes casos, a fim de 
+    O statement SQL abaixo utiliza mecanismos do PostgreSQL para verificar estes casos, a fim de 
     lidar com o maior número possível de casos.
     
-    A medida pensada foi de excluir primeiro e depois inserir/atualizar, primeiro se exclui da tabela o conteudo que
+    A medida pensada foi de excluir primeiro e depois inserir/atualizar, primeiro se exclui da tabela (check_db_orfaos) o conteudo que
     foi excluido do texto/pdf depois se realiza um checking de atualizações no conteúdo ou novos conteúdos.
 
     # TODO: implementar forma de criar os embeddings apenas quando necessário, assim 
     # as funções processar_chunks_* não precisarão de processar os embeddings.
+
+    Args:
+        chunks_tratados: Lista com dicionários representando cada chunk e suas informações.
     """
 
     try:
@@ -92,7 +110,15 @@ def armazenar_db(chunks_tratados: List[Dict[str,Any]]) -> None:
         raise
 
 
-def processar_chunks_pdf(chunks, dados_chunk):
+def processar_chunks_pdf(chunks: List[Document], dados_chunk: List[Dict[str,Any]]):
+    """
+    Utiliza a lista de documentos com chunks de pdfs para transformá-los em uma lista de dicionários
+    com informações específicas de cada documento(caminho de origem, conteudo, pag, etc.)
+
+    Args:
+        chunks (List[Document]): Lista de documentos com chunks.
+        dados_chunk (List[Dict[str,Any]]: Lista para armazenar os dados processados.
+    """
     ultima_pagina = None
     indice_chunk_atual = 0
     embedding = BedrockEmbeddings(
@@ -119,6 +145,15 @@ def processar_chunks_pdf(chunks, dados_chunk):
         })
 
 def processar_chunks_txt(chunks, dados_chunk):
+    """
+    Utiliza a lista de documentos com chunks de txts para transformá-los em uma lista de dicionários
+    com informações específicas de cada documento(caminho de origem, conteudo, pag, etc.)
+
+    Args:
+        chunks (List[Document]): Lista de documentos com chunks.
+        dados_chunk (List[Dict[str,Any]]: Lista para armazenar os dados processados.
+    """
+
     indice_chunk_atual = 0
     embedding = BedrockEmbeddings(
         model_id="amazon.titan-embed-text-v2:0"
@@ -195,7 +230,17 @@ def check_db_orfaos(dados_chunk: List[Dict[str, Any]]) -> None:
 
     
 
-def processar_item_unico(caminho_arquivo, tipo):
+def processar_item_unico(caminho_arquivo: str, tipo: str):
+    """
+    Função para processar um item único, seja pdf ou txt, feita para ser utilizada iterativamente(como no website).
+
+    Args:
+        caminho_arquivo (str): Caminho do arquivo a ser processado.
+        tipo (str): Tipo do arquivo (pdf ou txt).
+    Raises:
+        ValueError: Quando não é um dos tipos de arquivos aceitos. 
+    """
+
     dados_chunk = []
     if tipo == 'pdf':
         loader = PyPDFLoader(caminho_arquivo)

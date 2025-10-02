@@ -1,4 +1,7 @@
 # PoC RAG + Embeddings
+![Python](https://img.shields.io/badge/python-3.12+-blue.svg)
+![Streamlit](https://img.shields.io/badge/streamlit-1.50.0+-red.svg)
+![PostgreSQL](https://img.shields.io/badge/postgresql-14+-blue.svg)
 
 ## Introdução
 Pipeline RAG com embeddings desenvolvida para o processo seletivo da Kairos Lab, em conjunto com um notebook para o fine tunin do modelo `Gemma 3 270m`. A pipeline principal é integrada com a interface web que utiliza `streamlit` para facilitar a demonstração de suas funcionalidades.
@@ -19,9 +22,68 @@ Por fim, é feito a inserção dos dados dos chunks no banco de dados, utilizand
 
 
 ### Processamento de query 
+TODO: INSERIR IMAGEM PROCESSAMENTO QUERY.
 
 O processamento de query ocorre após o usuário definir uma query e apertar o botão `processar` na interface web. Este processamento ocorre no arquivo `query_processing.py` iniciando com a transformação da query em um embedding utilizando o modelo "Amazon Titan Text Embedding v2", a obtenção de embedding acontece na função `get_query_embedding()`. 
-Os embeddings da query são então comparados com os embeddings do banco de dados, usufruindo das capacidades da extensão `pgvector` do `PostgreSQL` para realizar a comparação dos embeddings com base na distância de coseno entre os vetores, o qual é feito utilizando o operador `<=>` do `pgvector`
+Os embeddings da query são então comparados com os embeddings do banco de dados, usufruindo das capacidades da extensão `pgvector` do `PostgreSQL` para realizar a comparação dos embeddings com base na distância de coseno entre os vetores, o qual é feito utilizando o operador `<=>` do `pgvector`, extraindo um valor de similaridade que é filtrado com base em um número mínimo de similaridade.
+Após as etapas mencionadas, é feito uma simples condicional com o intuito de verificar se há algum resultado com valor de similaridade acima do mínimo ou não, caso não exista ocorre o `fallback para a web`, onde há a obtenção de contextos a partir de uma pesquisa simples na web, um `otimizador de query para pesquisa` foi desenvolvido para aumentar a eficácia da pesquisa, o que de fato mostrou um resultado positivo. A função `otimizar_prompt_web()` utiliza a query do usuário para então gerar uma query para pesquisa na internet e o modelo de LLM (`Claude Haiku`) é utilizado com um prompt específico para esta tarefa, o contexto é então utilizado para gerar o prompt para a LLM (`Claude Haiku`) gerar a resposta da query do usuário, no caso de uso de internet não é feito mais nada depois.
+Para o caso de a pesquisa de similaridade semântica retornar algum valor com chunks dos documentos relevantes, o prompt para LLM é então gerado e uma resposta é feita, neste caso há uma verificação da resposta da LLM com o contexto fornecido, ambos são transformados em embeddings e é feito um cálculo de similaridade com base na distância dos vetores em coseno, caso ultrapasse um valor de mínimo acetitável, a resposta é aprovada para ser mostrada ao usuário, caso contrário ocorre um `fallback para a web` com o intuito de obter contextos para reforçar os já presentes melhorando (com maior probabilidade) a resposta da LLM posteriormente, a função `otimizar_prompt_web` é utilizada para realizar a pesquisa, após isso o prompt final é gerado e passado para a LLM gerar uma resposta finalizando o processamento de query.
+
+
+### Interface Web 
+A interface web utiliza a biblioteca `Streamlit`, a fim de facilitar a demonstração da pipeline RAG. Para a criação foi utilizado `vibe code` (Justificativa: O streamlit já possui diversos componentes já pré feitos, e como medida de usar o tempo como eficiência utilizei o vibe code para gerar o design da interface, limitando o modelo a usar apenas os recursos presentes na biblioteca). Há diversas implementações a serem feitas, as quais serão compartilhadas na seção `Próximos passos`.
+
+# Tecnologias utilizadas 
+- **Backend**: Python 3.12
+- **LLM**: AWS Bedrock (Claude 3 Haiku)
+- **Embeddings**: Amazon Titan Embed Text v2
+- **Vector DB**: PostgreSQL + pgvector
+- **Frontend**: Streamlit
+- **Web Search**: DuckDuckGo
+
+# Pré-requisitos
+- Acesso ao serviço Bedrock da AWS
+- Docker
+- uv (gerenciamento de pacotes e versões)
+
+# Como usar
+Primeiro é necessário clonar o repósitorio:
+```bash
+git clone https://github.com/GabrielArpini/PoC_Rag.git
+cd PoC_Rag 
+```
+
+Agora é preciso configuar as credenciais da sua conta AWS:
+```bash
+uv run aws configure 
+```
+Este comando irá solicitar algumas credenciais para usar os serviços da AWS, por favor preencha-os.
+
+Após isso, é necessário iniciar o banco de dados com o Docker compose:
+```bash 
+docker compose up -d 
+```
+`-d` siginifica detach, assim não ocupará um terminal. 
+
+Com o banco de dados funcionando, basta iniciar a interface web com:
+```bash
+uv run streamlit run web_page.py
+```
+
+E voilá, a interface web abrirá no seu navegador padrão e poderá utilizar as suas funcionalidades, como realizar uma pergunta ou fazer o upload de um arquivo!
+
+
+
+```
+```
+```
+```
+```
+```
+```
+
+
+
 
 
 
