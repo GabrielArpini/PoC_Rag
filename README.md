@@ -72,16 +72,15 @@ uv run streamlit run web_page.py
 
 E voilá, a interface web abrirá no seu navegador padrão e poderá utilizar as suas funcionalidades, como realizar uma pergunta ou fazer o upload de um arquivo!
 
+# Próximos passos 
 
-
-```
-```
-```
-```
-```
-```
-```
-
+- Otimizar as chamadas de API da AWS, minimizando ao máximo os custos.
+- Melhorar as interações com o banco de dados, a query de inserção e update realiza os updates partindo da premissa que 
+se houver chunks com metadados iguais quer dizer que devem ser atualizados, não necessáriamente é o caso.
+- Colocar opções na interface para manipular hiperparâmetros (MIN_SIMILARIDADE, min_similaridade_res, chunk_size, chunk_overlap)
+- Melhorar a visualização de itens processados do banco de dados na interface web; 
+- Possibilitar a exclusão de itens do banco de dados através da interface web; 
+- Criar interface web para visualizar os embeddings presentes no banco de dados e estatísticas. 
 
 
 
