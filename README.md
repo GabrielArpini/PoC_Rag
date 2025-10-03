@@ -4,7 +4,7 @@
 ![PostgreSQL](https://img.shields.io/badge/postgresql-14+-blue.svg)
 
 ## Introdução
-Pipeline RAG com embeddings desenvolvida para o processo seletivo da Kairos Lab, em conjunto com um notebook para o fine tunin do modelo `Gemma 3 270m`. A pipeline principal é integrada com a interface web que utiliza `streamlit` para facilitar a demonstração de suas funcionalidades.
+Pipeline RAG com embeddings desenvolvida para o processo seletivo da Kairos Lab, em conjunto com um notebook para o fine tuning do modelo `Gemma 3 270m`. A pipeline principal é integrada com a interface web que utiliza `streamlit` para facilitar a demonstração de suas funcionalidades.
 
 ## Como a pipeline RAG funciona?
 O desenvolvimento da pipeline RAG foi separado em dois componentes principais: pre processamento e processamento de query.
