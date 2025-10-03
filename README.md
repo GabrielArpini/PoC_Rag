@@ -14,8 +14,6 @@ O pré processamento(`pre_processing.py`) é um componente desenvolvido para o p
 
 ![pre processamento](/imgs/pre_processamento.png)
 
-#TODO: inserir diagrama 
-
 A partir da interface web, pode-se inserir múltiplos arquivos (pdf ou txt), os quais são usados para iniciar o processo de pré processamento conforme a imagem. Primeiro é feito uma simples extração da extensão do arquivo inserido, para então utilizar o `loader` da biblioteca `langchain` correspondente a extensão extraida (`PyPDFLoader` ou `TextLoader`), a função que realiza esta tarefa é a `processar_item_unico()`. Após o carregamento do arquivo especificado é feito a separação dos chunks que utiliza a função `RecursiveCharacterTextSplitter` da biblioteca `langchain`, após isso se utiliza uma variável `dados_chunk` para armazenar o índice do chunk, página (se houver), conteúdo, embedding do conteúdo, tempo da última modificação (se houver) e caminho do arquivo, finalizando o processamento do item, que ocorre iterativamente a cada item do upload de arquivos.
 
 
